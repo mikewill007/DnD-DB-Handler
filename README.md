@@ -300,6 +300,11 @@ of the same name, edition, ruleset, and type, so you can compare more than two
 records at once. Scroll horizontally for additional variants. Gold highlights
 differences; green highlights the value selected for the combined record.
 
+Use the **Theme** selector at the top of the window to switch between Light and
+Dark colors independently of VS Code or your system appearance. The default is
+Light; to start in Dark on macOS, run
+`.venv/bin/python review_conflicts.py --theme dark`.
+
 1. Select a group on the left. **Compare records** shows normalized fields;
    **Original data & attribution** shows every provider's original JSON, reference,
    and available attribution. Long descriptions can scroll independently.

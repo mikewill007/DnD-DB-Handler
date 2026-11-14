@@ -18,6 +18,14 @@ from .resolutions import ReviewStore
 from .schema import FIELDS
 
 PROJECT = Path(__file__).resolve().parents[1]
+PALETTES = {
+    'Light': dict(background='#f5f6f8', surface='#ffffff', text='#17212b',
+                  muted='#526174', changed='#fff1cc', chosen='#dff3e6',
+                  accent='#245c99', selected_text='#ffffff', border='#b4bcc8'),
+    'Dark': dict(background='#20252d', surface='#2b323d', text='#f1f4f8',
+                 muted='#bac6d6', changed='#59451e', chosen='#224b38',
+                 accent='#9ecbff', selected_text='#17212b', border='#667386'),
+}
 
 
 def display(value):
@@ -33,7 +41,7 @@ def display(value):
 
 class ConflictBrowser:
     """Compare a whole conflict group and manage its unsaved resolution draft."""
-    def __init__(self, root, store):
+    def __init__(self, root, store, theme='Light'):
         self.root, self.store = root, store
         self.current = None
         # Field overrides map a normalized field to its donor variant ID. They are
@@ -47,24 +55,62 @@ class ConflictBrowser:
         self.preferred = tk.StringVar()
         self.only_differences = tk.BooleanVar(value=True)
         self.notice = tk.StringVar(value='Choose a conflict group to begin.')
+        self.theme = tk.StringVar(value=theme)
         self.root.title('D&D Conflict Review')
         self.root.geometry('1440x900')
         self.root.minsize(1050, 700)
         self.root.protocol('WM_DELETE_WINDOW', self.close)
-        style = ttk.Style(root)
-        if 'vista' in style.theme_names():
-            style.theme_use('vista')
-        style.configure('Title.TLabel', font=('Segoe UI', 18, 'bold'))
-        style.configure('Heading.TLabel', font=('Segoe UI', 11, 'bold'))
-        style.configure('Muted.TLabel', foreground='#526174')
-        style.configure('Changed.TLabel', background='#fff1cc', padding=8)
-        style.configure('Selected.TLabel', background='#dff3e6', padding=8)
+        self.apply_theme()
         self._layout()
         self.refresh_list()
         if self.visible_keys:
             self.tree.selection_set(self.visible_keys[0])
         self.root.bind('<Control-f>', lambda event: self.search_entry.focus_set())
         self.root.bind('<Control-s>', lambda event: self.save('prefer'))
+
+    def apply_theme(self, event=None):
+        """Use paired colors, independent of native macOS dark-mode defaults."""
+        colors = self.colors = PALETTES[self.theme.get()]
+        style = ttk.Style(self.root)
+        # Native themes can ignore explicit colors on macOS and Windows.
+        style.theme_use('clam')
+        style.configure('.', background=colors['background'], foreground=colors['text'],
+                        fieldbackground=colors['surface'], bordercolor=colors['border'],
+                        lightcolor=colors['border'], darkcolor=colors['border'])
+        style.map('.', background=[('active', colors['surface'])],
+                  foreground=[('disabled', colors['muted'])])
+        style.configure('Title.TLabel', font=('Segoe UI', 18, 'bold'))
+        style.configure('Heading.TLabel', font=('Segoe UI', 11, 'bold'))
+        style.configure('Muted.TLabel', foreground=colors['muted'])
+        style.configure('Changed.TLabel', background=colors['changed'], foreground=colors['text'], padding=8)
+        style.configure('Selected.TLabel', background=colors['chosen'], foreground=colors['text'], padding=8)
+        style.configure('Treeview', background=colors['surface'], fieldbackground=colors['surface'])
+        for widget in ('Treeview', 'TEntry', 'TCombobox'):
+            style.map(widget, background=[('selected', colors['accent'])],
+                      foreground=[('selected', colors['selected_text'])],
+                      selectbackground=[('!disabled', colors['accent'])],
+                      selectforeground=[('!disabled', colors['selected_text'])])
+        style.map('TCombobox', fieldbackground=[('readonly', colors['surface'])],
+                  foreground=[('readonly', colors['text'])])
+        style.map('TNotebook.Tab', background=[('selected', colors['surface'])])
+        self.root.configure(background=colors['background'])
+        # These defaults also cover new comparison text boxes and dropdown lists.
+        for option, value in (
+            ('*Text.background', colors['surface']), ('*Text.foreground', colors['text']),
+            ('*Text.insertBackground', colors['text']), ('*Text.selectBackground', colors['accent']),
+            ('*Text.selectForeground', colors['selected_text']),
+            ('*Listbox.background', colors['surface']), ('*Listbox.foreground', colors['text']),
+            ('*Listbox.selectBackground', colors['accent']),
+            ('*Listbox.selectForeground', colors['selected_text']),
+        ):
+            self.root.option_add(option, value)
+        if hasattr(self, 'canvas'):
+            self.canvas.configure(background=colors['background'])
+            for widget in (self.source_text, self.preview, self.note):
+                widget.configure(background=colors['surface'], foreground=colors['text'],
+                                 insertbackground=colors['text'], selectbackground=colors['accent'],
+                                 selectforeground=colors['selected_text'])
+            self.render_comparison()
 
     # Window layout and widgets.
 
@@ -74,6 +120,11 @@ class ConflictBrowser:
         header.pack(fill='x')
         ttk.Label(header, text='D&D Conflict Review', style='Title.TLabel').pack(side='left')
         ttk.Button(header, text='Refresh', command=self.reload).pack(side='right')
+        theme_picker = ttk.Combobox(header, textvariable=self.theme, values=tuple(PALETTES),
+                                   state='readonly', width=7)
+        theme_picker.pack(side='right', padx=(4, 12))
+        theme_picker.bind('<<ComboboxSelected>>', self.apply_theme)
+        ttk.Label(header, text='Theme').pack(side='right')
         self.progress = ttk.Label(header, style='Muted.TLabel')
         self.progress.pack(side='right', padx=20)
         panes = ttk.Panedwindow(self.root, orient='horizontal')
@@ -128,7 +179,7 @@ class ConflictBrowser:
         ttk.Label(controls, text='Gold = different · Green = chosen value', style='Muted.TLabel').pack(side='right')
         comparison = ttk.Frame(compare)
         comparison.pack(fill='both', expand=True)
-        self.canvas = tk.Canvas(comparison, highlightthickness=0, background='#f5f6f8')
+        self.canvas = tk.Canvas(comparison, highlightthickness=0, background=self.colors['background'])
         vertical = ttk.Scrollbar(comparison, orient='vertical', command=self.canvas.yview)
         horizontal = ttk.Scrollbar(comparison, orient='horizontal', command=self.canvas.xview)
         self.canvas.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
@@ -293,10 +344,10 @@ class ConflictBrowser:
                 cell = ttk.Frame(self.table, padding=4)
                 cell.grid(row=row, column=col, sticky='nsew', padx=2, pady=2)
                 chosen_value = item['id'] == selected
-                color = '#dff3e6' if chosen_value else '#fff1cc' if differs else '#ffffff'
+                color = self.colors['chosen' if chosen_value else 'changed' if differs else 'surface']
                 if field == 'description':
                     box = ScrolledText(cell, width=37, height=12, wrap='word', font=('Segoe UI', 10),
-                                       background=color, relief='flat', padx=8, pady=8)
+                                       background=color, foreground=self.colors['text'], relief='flat', padx=8, pady=8)
                     box.pack(fill='both', expand=True)
                     box.insert('1.0', display(value))
                     box.configure(state='disabled')
@@ -475,11 +526,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--database', type=Path, default=PROJECT / 'output/dnd_master.sqlite')
     parser.add_argument('--resolutions', type=Path, help='Decision file (default: beside the master database)')
+    parser.add_argument('--theme', choices=('light', 'dark'), default='light', help='Window colors (default: light)')
     args = parser.parse_args()
     try:
         store = ReviewStore(args.database, args.resolutions)
         root = tk.Tk()
-        ConflictBrowser(root, store)
+        ConflictBrowser(root, store, theme=args.theme.title())
         root.mainloop()
     except (OSError, ValueError, sqlite3.Error, tk.TclError) as exc:
         print(f'Cannot open conflict browser: {exc}', file=sys.stderr)
