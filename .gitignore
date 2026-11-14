@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+# Portable SQLite databases are versioned with Git LFS.
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.working.sqlite
+databases/*.tmp
+databases/*.zip
+output/*.working
+.env
+.env.*
+!.env.example
+.pytest_cache/

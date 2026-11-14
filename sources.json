@@ -1,0 +1,87 @@
+{
+  "sources": [
+    {
+      "id": "five_e_bits",
+      "name": "5e-bits D&D 5e API",
+      "type": "dnd5eapi",
+      "base_url": "https://www.dnd5eapi.co/api",
+      "editions": [
+        "2014",
+        "2024"
+      ],
+      "homepage": "https://github.com/5e-bits/5e-srd-api",
+      "enabled": true
+    },
+    {
+      "id": "open5e",
+      "name": "Open5e API v2",
+      "type": "open5e",
+      "root_url": "https://api.open5e.com/v2/",
+      "homepage": "https://github.com/open5e/open5e-api",
+      "enabled": true
+    },
+    {
+      "id": "foundry_dnd5e",
+      "name": "Foundry D&D 5e JSON packs",
+      "type": "github_json",
+      "repository": "foundryvtt/dnd5e",
+      "branch": "6.1.x",
+      "include_prefixes": [
+        "packs/_source/"
+      ],
+      "strip_prefix": "packs/_source/",
+      "homepage": "https://github.com/foundryvtt/dnd5e",
+      "enabled": true,
+      "file_extensions": [
+        ".yml",
+        ".yaml"
+      ]
+    },
+    {
+      "id": "btmorton_srd",
+      "name": "BTMorton D&D 5e SRD JSON",
+      "type": "github_json",
+      "repository": "BTMorton/dnd-5e-srd",
+      "branch": "master",
+      "include_prefixes": [
+        "json/"
+      ],
+      "strip_prefix": "json/",
+      "homepage": "https://github.com/BTMorton/dnd-5e-srd",
+      "enabled": true,
+      "expand_nested": true,
+      "file_extensions": [
+        ".json"
+      ]
+    },
+    {
+      "id": "adkinn_srd521",
+      "name": "adkinn SRD 5.2.1 JSON",
+      "type": "github_json",
+      "repository": "adkinn/srd-5.2.1",
+      "branch": "main",
+      "include_prefixes": [
+        "data/monsters.json",
+        "data/conditions.json"
+      ],
+      "strip_prefix": "data/",
+      "homepage": "https://github.com/adkinn/srd-5.2.1",
+      "enabled": true,
+      "note": "All published game-data files as of Nov 2026 are monsters.json and conditions.json; schemas are excluded as not game records."
+    },
+    {
+      "id": "dnd_data_community",
+      "name": "Community D&D Data (non-SRD, licensing review needed)",
+      "type": "github_json",
+      "repository": "nick-aschenbach/dnd-data",
+      "branch": "main",
+      "include_prefixes": [
+        "data/"
+      ],
+      "strip_prefix": "data/",
+      "homepage": "https://github.com/nick-aschenbach/dnd-data",
+      "enabled": false,
+      "note": "Contains extracts from copyrighted commercial books and third-party works; verify rights before use or redistribution."
+    }
+  ]
+}
